@@ -3,7 +3,7 @@ version: 0.2
 phases:
   install:
     commands:
-       - echo Installing NGINX
+       - echo Installing httpd
        - sudo yum update -y
        - sudo yum install httpd -y
     build:
