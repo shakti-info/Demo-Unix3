@@ -5,6 +5,7 @@ phases:
     commands:
       - echo Installing httpd
       - sudo yum clean all
+      - sudo yum makecache
       - sudo yum update -y
       - sudo yum install httpd -y
 
