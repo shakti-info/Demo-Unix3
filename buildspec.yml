@@ -8,17 +8,19 @@ phases:
       - sudo yum makecache
       - sudo yum update -y
       - sudo yum install httpd -y
+      - sudo systemctl enable httpd
+      - sudo systemctl start httpd
 
   build:
     commands:
-      - echo Build started on `date`
+      - echo Build started on $(date)
       - sudo cp index.html /var/www/html/
 
   post_build:
     commands:
-      - echo Configuring httpd
+      - echo Configuring httpd completed
+      - sudo systemctl status httpd
 
 artifacts:
   files:
     - '**/*'
-
