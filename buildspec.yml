@@ -7,7 +7,7 @@ phases:
        - sudo yum update -y
        - sudo yum install httpd -y
     build:
-      command:
+      commands:
        - echo Build started on 'date'
        - cp index.html /var/www/html/
 post_build:
