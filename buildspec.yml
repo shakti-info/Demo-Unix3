@@ -3,6 +3,9 @@ version: 0.2
 phases:
   install:
     commands:
+      - cat /etc/os-release
+      - yum repolist
+    commands:
       - echo Installing httpd
       - sudo yum clean all
       - sudo yum makecache
