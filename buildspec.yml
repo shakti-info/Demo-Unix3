@@ -3,20 +3,19 @@ version: 0.2
 phases:
   install:
     commands:
-      - cat /etc/os-release
-      - yum repolist
-    commands:
       - echo Installing httpd
       - sudo yum clean all
       - sudo yum makecache
-      - sudo yum update -y
-      - sudo yum install httpd -y
+      - sudo yum install -y httpd
       - sudo systemctl enable httpd
       - sudo systemctl start httpd
 
   build:
     commands:
       - echo Build started on $(date)
+      - ls -l
+      - pwd
+      - sudo mkdir -p /var/www/html
       - sudo cp index.html /var/www/html/
 
   post_build:
