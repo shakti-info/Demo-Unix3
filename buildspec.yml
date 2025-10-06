@@ -2,27 +2,50 @@ version: 0.2
 
 phases:
   install:
+    runtime-versions:
+      docker: 20
     commands:
-      - echo Installing httpd
-      - sudo yum clean all
-      - sudo yum makecache
-      - sudo yum install -y httpd
-      - sudo systemctl enable httpd
-      - sudo systemctl start httpd
+      - echo "Installing dependencies and setting up Docker"
+      - mkdir -p /var/www/html
+      - cd /var/www/html
+      - echo "Working directory set to /var/www/html"
+      - nohup /usr/local/bin/dockerd --host=unix:///var/run/docker.sock --host=tcp://0.0.0.0:2375 &>/var/log/docker.log &
+      - timeout 15 sh -c "until docker info; do echo .; sleep 1; done"
+
+  pre_build:
+    commands:
+      - echo "Starting pre-build phase..."
+      - cd /var/www/html
+      - echo "Creating Docker network 'twotier'"
+      - docker network create twotier || echo "Network already exists"
 
   build:
     commands:
-      - echo Build started on $(date)
-      - ls -l
-      - pwd
-      - sudo mkdir -p /var/www/html
-      - sudo cp index.html /var/www/html/
+      - echo "Building Flask app Docker image from /var/www/html"
+      - cd /var/www/html
+      - docker build -t flaskapp .
+      - echo "Running MySQL container..."
+      - docker run -d -p 3306:3306 --network=twotier \
+          -e MYSQL_DB=school_info \
+          -e MYSQL_USER=admin \
+          -e MYSQL_PASSWORD=admin \
+          -e MYSQL_ROOT_PASSWORD=admin \
+          --name=mysql11 mysql:5.7
+      - echo "Running Flask app container..."
+      - docker run -d -p 5000:5000 --network=twotier \
+          -e MYSQL_HOST=mysql \
+          -e MYSQL_USER=admin \
+          -e MYSQL_PASSWORD=admin \
+          -e MYSQL_DB=school_info \
+          --name=newflaskapp flaskapp:latest
 
   post_build:
     commands:
-      - echo Configuring httpd completed
-      - sudo systemctl status httpd
+      - echo "Build and container startup complete!"
+      - cd /var/www/html
+      - docker ps
 
 artifacts:
   files:
-    - '**/*'
+    - '/var/www/html/**/*'
+  discard-paths: no
