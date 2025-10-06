@@ -2,7 +2,7 @@
 FROM python:3.9
 
 # Set working directory
-WORKDIR /usr/share/nginx/html/k8s
+WORKDIR /var/www/html
 
 # Install system dependencies for mysqlclient
 RUN apt-get update && \
@@ -11,14 +11,17 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy requirements
-COPY requirements.txt .
+COPY requirements.txt /var/www/html/
 
 # Install Python dependencies
 RUN pip install mysqlclient
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy app code
-COPY . .
+# Copy application code
+COPY . /var/www/html/
+
+# Expose the Flask app port
+EXPOSE 5000
 
 # Run the app
 CMD ["python", "app.py"]
