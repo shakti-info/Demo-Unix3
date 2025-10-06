@@ -13,33 +13,35 @@ phases:
 
   pre_build:
     commands:
-      - echo "Starting pre-build phase..."
-      - echo "Copying source code into /var/www/html"
+      - echo "Preparing build environment..."
       - cp -r $CODEBUILD_SRC_DIR/* /var/www/html/
-      - ls -l /var/www/html
-      - echo "Fixing permissions"
       - chmod -R 755 /var/www/html
       - cd /var/www/html
-      - echo "Creating Docker network 'twotier'"
+      - echo "Creating or verifying Docker network 'twotier'"
       - docker network create twotier || echo "Network already exists"
+      - echo "Cleaning up any old containers..."
+      - docker rm -f mysql11 || true
+      - docker rm -f newflaskapp || true
 
   build:
     commands:
-      - echo "Building Flask app Docker image from /var/www/html"
+      - echo "Building Flask app Docker image..."
       - cd /var/www/html
-      - echo "Current directory:" $(pwd)
-      - echo "Files available for build:" && ls -l
       - docker build -t flaskapp .
-      - echo "Running MySQL container..."
+      - echo "Pulling MySQL image..."
+      - docker pull mysql:5.7
+      - echo "Starting MySQL container..."
       - docker run -d -p 3306:3306 --network=twotier \
-          -e MYSQL_DB=school_info \
+          -e MYSQL_DATABASE=school_info \
           -e MYSQL_USER=admin \
           -e MYSQL_PASSWORD=admin \
           -e MYSQL_ROOT_PASSWORD=admin \
           --name=mysql11 mysql:5.7
-      - echo "Running Flask app container..."
+      - echo "Waiting 20 seconds for MySQL to initialize..."
+      - sleep 20
+      - echo "Starting Flask app container..."
       - docker run -d -p 5000:5000 --network=twotier \
-          -e MYSQL_HOST=mysql \
+          -e MYSQL_HOST=mysql11 \
           -e MYSQL_USER=admin \
           -e MYSQL_PASSWORD=admin \
           -e MYSQL_DB=school_info \
@@ -49,6 +51,8 @@ phases:
     commands:
       - echo "Build and container startup complete!"
       - docker ps
+      - docker logs mysql11 || true
+      - docker logs newflaskapp || true
 
 artifacts:
   files:
