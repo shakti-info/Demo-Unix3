@@ -7,20 +7,19 @@ phases:
     commands:
       - echo "Installing dependencies and setting up Docker"
       - mkdir -p /var/www/html
-      - chown -R ec2-user:ec2-user /var/www/html || true
-      - chmod -R 755 /var/www/html
-      - cd /var/www/html
-      - echo "Working directory set to /var/www/html"
+      - echo "Starting Docker daemon..."
       - nohup /usr/local/bin/dockerd --host=unix:///var/run/docker.sock --host=tcp://0.0.0.0:2375 &>/var/log/docker.log &
       - timeout 15 sh -c "until docker info; do echo .; sleep 1; done"
 
   pre_build:
     commands:
       - echo "Starting pre-build phase..."
-      - cd /var/www/html
-      - echo "Ensuring permissions before build"
-      - chown -R ec2-user:ec2-user /var/www/html || true
+      - echo "Copying source code into /var/www/html"
+      - cp -r $CODEBUILD_SRC_DIR/* /var/www/html/
+      - ls -l /var/www/html
+      - echo "Fixing permissions"
       - chmod -R 755 /var/www/html
+      - cd /var/www/html
       - echo "Creating Docker network 'twotier'"
       - docker network create twotier || echo "Network already exists"
 
@@ -28,8 +27,8 @@ phases:
     commands:
       - echo "Building Flask app Docker image from /var/www/html"
       - cd /var/www/html
-      - echo "Setting permissions for Docker build context"
-      - chmod -R 755 /var/www/html
+      - echo "Current directory:" $(pwd)
+      - echo "Files available for build:" && ls -l
       - docker build -t flaskapp .
       - echo "Running MySQL container..."
       - docker run -d -p 3306:3306 --network=twotier \
@@ -49,9 +48,6 @@ phases:
   post_build:
     commands:
       - echo "Build and container startup complete!"
-      - cd /var/www/html
-      - echo "Final permission check..."
-      - chmod -R 755 /var/www/html
       - docker ps
 
 artifacts:
